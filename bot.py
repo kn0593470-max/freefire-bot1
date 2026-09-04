@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 TOKEN = "8483501766:AAFSg-dWNLZjmKNQxMKQzZh2KOoyA_YBL5E"
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID", "@nhomsharemodallgame")
 PORT = int(os.getenv("PORT", "8080"))
-ADMIN_ID = 7907990385  # ID Admin tối cao của ông
+ADMIN_ID = 7907990385  # ID Admin của ông
 
 # --- KHỞI TẠO CƠ SỞ DỮ LIỆU SQLITE ---
 def init_db():
@@ -40,7 +40,6 @@ def init_db():
             quantity INTEGER
         )
     """)
-    # Set số lượng mặc định ban đầu cho các loại kho
     cursor.execute("INSERT OR IGNORE INTO stock (item_type, quantity) VALUES ('huyen_thoai', 60)")
     cursor.execute("INSERT OR IGNORE INTO stock (item_type, quantity) VALUES ('clone30', 60)")
     cursor.execute("INSERT OR IGNORE INTO stock (item_type, quantity) VALUES ('clone58', 0)")
@@ -99,7 +98,6 @@ def add_user_xu(user_id, amount):
     conn.commit()
     conn.close()
 
-# Danh sách tài khoản mẫu
 FAKE_ACCOUNTS_HUYEN_THOAI = [
     f"🏆 <b>ACC RANK HUYỀN THOẠI ({random.randint(1, 5)} SAO)</b>\n━━━━━━━━━━━━━━━━━━━\n📧 Tài khoản: <code>ht_pro_{random.randint(100,999)}@gmail.com</code>\n🔑 Mật khẩu: <code>huyenthoai2026</code>",
     f"🏆 <b>ACC RANK HUYỀN THOẠI ({random.randint(1, 5)} SAO)</b>\n━━━━━━━━━━━━━━━━━━━\n📧 Tài khoản: <code>legend_ff_{random.randint(100,999)}@gmail.com</code>\n🔑 Mật khẩu: <code>ffrankvip99</code>"
@@ -302,7 +300,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("Đã tạo link!", show_alert=True)
         await context.bot.send_message(chat_id=user_id, text=f"🔗 <b>Link giới thiệu của bạn:</b>\n<code>{ref_link}</code>", parse_mode="HTML")
 
-# Lệnh cộng xu (Chỉ Admin mới dùng được)
 async def admin_addxu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Bạn không có quyền dùng lệnh này.")
@@ -325,7 +322,6 @@ async def admin_addxu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("❌ ID và số xu phải là số!")
 
-# Lệnh chỉnh kho (Chỉ Admin mới dùng được)
 async def admin_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Bạn không có quyền dùng lệnh này.")
@@ -358,6 +354,10 @@ application.add_handler(CommandHandler("addxu", admin_addxu))
 application.add_handler(CommandHandler("setstock", admin_setstock))
 application.add_handler(CallbackQueryHandler(button_handler))
 
+# Khởi tạo event loop cố định dùng chung cho Flask Webhook để tránh lỗi "Event loop is closed"
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
 @flask_app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     json_data = request.get_json(force=True)
@@ -366,7 +366,9 @@ def webhook():
         if not application.running:
             await application.initialize()
         await application.process_update(update)
-    asyncio.run(run_update())
+    
+    future = asyncio.run_coroutine_threadsafe(run_update(), loop)
+    future.result()
     return "OK", 200
 
 @flask_app.route("/", methods=["GET"])
