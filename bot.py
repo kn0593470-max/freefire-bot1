@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 TOKEN = "8483501766:AAFSg-dWNLZjmKNQxMKQzZh2KOoyA_YBL5E"
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID", "@nhomsharemodallgame")
 PORT = int(os.getenv("PORT", "8080"))
-ADMIN_ID = 7907990385  # ID của riêng ông (Admin tối cao)
+ADMIN_ID = 7907990385  # ID Admin tối cao của ông
 
 # --- KHỞI TẠO CƠ SỞ DỮ LIỆU SQLITE ---
 def init_db():
@@ -375,3 +375,4 @@ def index():
 
 if __name__ == "__main__":
     flask_app.run(host="0.0.0.0", port=PORT)
+
