@@ -16,7 +16,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 TOKEN = "8483501766:AAFSg-dWNLZjmKNQxMKQzZh2KOoyA_YBL5E"
-GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID", "@nhomsharemodallgame")
+GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID", "@genplaycluod")
 PORT = int(os.getenv("PORT", "8080"))
 ADMIN_ID = 7907990385  # ID Admin của ông
 
@@ -161,11 +161,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     keyboard = [
-        [InlineKeyboardButton("📢 Tham gia Kênh", url="https://t.me/nhomsharemodallgame")],
+        [InlineKeyboardButton("📢 Tham gia Kênh", url="https://t.me/genplaycluod")],
         [InlineKeyboardButton("✅ Tôi đã tham gia", callback_data="check_joined")]
     ]
     if update.message:
-        await update.message.reply_text("<b>⚠️ Bạn cần tham gia kênh @nhomsharemodallgame trước khi sử dụng bot!</b>", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        await update.message.reply_text("<b>⚠️ Bạn cần tham gia kênh @genplaycluod trước khi sử dụng bot!</b>", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
 async def check_joined_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -245,136 +245,91 @@ async def send_main_menu_callback(query, context: ContextTypes.DEFAULT_TYPE):
     ]
     await query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    data = query.data
-    user_id = query.from_user.id
-
-    if data == "check_joined":
-        await check_joined_callback(update, context)
-        return
-
-    u_data = get_user(user_id)
-
-    if data == "doi_huyen_thoai":
-        ht = get_stock("huyen_thoai")
-        if ht <= 0:
-            await query.answer("❌ Kho Acc Huyền Thoại đã hết hàng!", show_alert=True)
-        elif u_data["xu"] < 30:
-            await query.answer("❌ Bạn không đủ 30 xu để đổi!", show_alert=True)
-        else:
-            add_user_xu(user_id, -30)
-            update_stock("huyen_thoai", -1)
-            acc_info = random.choice(FAKE_ACCOUNTS_HUYEN_THOAI)
-            await query.answer("🎉 Đổi thành công!", show_alert=False)
-            await context.bot.send_message(chat_id=user_id, text=f"✅ <b>GIAO DỊCH THÀNH CÔNG</b>\n\n{acc_info}", parse_mode="HTML")
-
-    elif data == "doi_clone30":
-        c30 = get_stock("clone30")
-        if c30 <= 0:
-            await query.answer("❌ Kho Acc Clone Lv 30 đã hết hàng!", show_alert=True)
-        elif u_data["xu"] < 20:
-            await query.answer("❌ Bạn không đủ 20 xu để đổi!", show_alert=True)
-        else:
-            add_user_xu(user_id, -20)
-            update_stock("clone30", -1)
-            acc_info = random.choice(FAKE_ACCOUNTS_CLONE30)
-            await query.answer("🎉 Đổi thành công!", show_alert=False)
-            await context.bot.send_message(chat_id=user_id, text=f"✅ <b>GIAO DỊCH THÀNH CÔNG</b>\n\n{acc_info}", parse_mode="HTML")
-            
-    elif data == "doi_clone58":
-        c58 = get_stock("clone58")
-        if c58 <= 0:
-            await query.answer("❌ Kho Acc Clone Lv 5 đã hết hàng!", show_alert=True)
-        elif u_data["xu"] < 15:
-            await query.answer("❌ Bạn không đủ 15 xu để đổi!", show_alert=True)
-        else:
-            add_user_xu(user_id, -15)
-            update_stock("clone58", -1)
-            acc_info = random.choice(FAKE_ACCOUNTS_CLONE58)
-            await query.answer("🎉 Đổi thành công!", show_alert=False)
-            await context.bot.send_message(chat_id=user_id, text=f"✅ <b>GIAO DỊCH THÀNH CÔNG</b>\n\n{acc_info}", parse_mode="HTML")
-            
-    elif data == "kiem_xu":
-        ref_link = f"https://t.me/{context.bot.username}?start=ref_{user_id}"
-        await query.answer("Đã tạo link!", show_alert=True)
-        await context.bot.send_message(chat_id=user_id, text=f"🔗 <b>Link giới thiệu của bạn:</b>\n<code>{ref_link}</code>", parse_mode="HTML")
-
-async def admin_addxu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- CÁC LỆNH DÀNH RIÊNG CHO ADMIN ---
+async def admin_congxu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Bạn không có quyền dùng lệnh này.")
         return
-
     args = context.args
     if len(args) < 2:
-        await update.message.reply_text("❌ Dùng cú pháp: /addxu [ID] [Số xu]")
+        await update.message.reply_text("⚠️ Cú pháp: /congxu <user_id> <số_xu>\n(Dùng số âm để trừ xu, ví dụ: /congxu 12345 50)")
         return
-
     try:
         target_id = int(args[0])
         amount = int(args[1])
         add_user_xu(target_id, amount)
-        await update.message.reply_text("✅ Đã thêm xu hoàn tất!")
-        try:
-            await context.bot.send_message(chat_id=target_id, text=f"🎁 Bạn được cộng <b>{amount} xu</b> từ Admin!", parse_mode="HTML")
-        except Exception:
-            pass
-    except ValueError:
-        await update.message.reply_text("❌ ID và số xu phải là số!")
+        await update.message.reply_text(f"✅ Đã cộng {amount} xu cho user <code>{target_id}</code> thành công!", parse_mode="HTML")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Lỗi: {e}")
 
-async def admin_setstock(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def admin_congkho(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Bạn không có quyền dùng lệnh này.")
         return
-
     args = context.args
     if len(args) < 2:
-        await update.message.reply_text("❌ Dùng cú pháp: /setstock [huyen_thoai/clone30/clone58] [Số lượng]")
+        await update.message.reply_text("⚠️ Cú pháp: /congkho <huyen_thoai / clone30 / clone58> <số_lượng>")
+        return
+    item_type = args[0]
+    if item_type not in ["huyen_thoai", "clone30", "clone58"]:
+        await update.message.reply_text("❌ Loại vật phẩm không hợp lệ! Chọn: huyen_thoai, clone30, clone58")
+        return
+    try:
+        amount = int(args[1])
+        new_qty = update_stock(item_type, amount)
+        await update.message.reply_text(f"✅ Đã cập nhật kho <b>{item_type}</b>. Số lượng hiện tại: <code>{new_qty}</code>", parse_mode="HTML")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Lỗi: {e}")
+
+async def admin_thongke(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    conn = sqlite3.connect("bot_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*), SUM(xu) FROM users")
+    row = cursor.fetchone()
+    total_users = row[0] if row[0] else 0
+    total_xu = row[1] if row[1] else 0
+    conn.close()
+
+    ht = get_stock("huyen_thoai")
+    c30 = get_stock("clone30")
+    c58 = get_stock("clone58")
+
+    text = (
+        "📊 <b>THỐNG KÊ HỆ THỐNG BOT</b>\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"👥 Tổng số user: <code>{total_users}</code>\n"
+        f"💰 Tổng xu lưu hành: <code>{total_xu} xu</code>\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"🏆 Kho Huyền Thoại: <code>{ht}</code> acc\n"
+        f"💎 Kho Clone Lv 30: <code>{c30}</code> acc\n"
+        f"🔥 Kho Clone Lv 5: <code>{c58}</code> acc"
+    )
+    await update.message.reply_text(text, parse_mode="HTML")
+
+async def admin_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    message_text = " ".join(context.args)
+    if not message_text:
+        await update.message.reply_text("⚠️ Cú pháp: /broadcast <Nội dung thông báo>")
         return
 
-    item_type = args[0]
-    try:
-        quantity = int(args[1])
-        if item_type not in ["huyen_thoai", "clone30", "clone58"]:
-            await update.message.reply_text("❌ Loại kho không hợp lệ! Dùng: huyen_thoai, clone30, hoặc clone58")
-            return
-            
-        conn = sqlite3.connect("bot_database.db")
-        cursor = conn.cursor()
-        cursor.execute("INSERT OR REPLACE INTO stock (item_type, quantity) VALUES (?, ?)", (item_type, quantity))
-        conn.commit()
-        conn.close()
-        
-        await update.message.reply_text(f"✅ Đã cập nhật kho <b>{item_type}</b> thành <b>{quantity}</b> acc!", parse_mode="HTML")
-    except ValueError:
-        await update.message.reply_text("❌ Số lượng phải là số nguyên!")
+    conn = sqlite3.connect("bot_database.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM users")
+    users = cursor.fetchall()
+    conn.close()
 
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("addxu", admin_addxu))
-application.add_handler(CommandHandler("setstock", admin_setstock))
-application.add_handler(CallbackQueryHandler(button_handler))
+    success = 0
+    failed = 0
+    status_msg = await update.message.reply_text("🚀 Đang gửi broadcast...")
 
-# Khởi tạo event loop cố định dùng chung cho Flask Webhook để tránh lỗi "Event loop is closed"
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
+    for (uid,) in users:
+        try:
+            await context.bot.send_message(chat_id=uid, text=f"📢 <b>THÔNG BÁO TỪ ADMIN:</b>\n\n{message_text}", parse_mode="HTML")
+            success += 1
+            await asyncio.sleep(0.05) # Tránh bị Telegram giới hạn spam rate
+        except Exception:
+            failed += 1
 
-@flask_app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, application.bot)
-    async def run_update():
-        if not application.running:
-            await application.initialize()
-        await application.process_update(update)
-    
-    future = asyncio.run_coroutine_threadsafe(run_update(), loop)
-    future.result()
-    return "OK", 200
-
-@flask_app.route("/", methods=["GET"])
-def index():
-    return "Bot running 24/7!", 200
-
-if __name__ == "__main__":
-    flask_app.run(host="0.0.0.0", port=PORT)
-
+    await status_msg.edit_text(f"✅ <b>Gửi broadcast hoàn tất!</b>\n- Thành công: {success}\n- Thất bại: {failed}", parse_mode="HTML")
